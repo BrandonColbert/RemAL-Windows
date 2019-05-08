@@ -1,0 +1,58 @@
+﻿<Page
+    x:Class="RemAL.MainPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:RemAL"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+
+	<Grid>
+		<Grid.ColumnDefinitions>
+			<ColumnDefinition Width="2*"/>
+			<ColumnDefinition Width="2*"/>
+		</Grid.ColumnDefinitions>
+
+		<Grid.RowDefinitions>
+			<RowDefinition Height="2*"/>
+			<RowDefinition Height="2*"/>
+		</Grid.RowDefinitions>
+
+		<Border Background="#303f9f"/>
+		<Border Grid.Row="1" Background="#1a237e"/>
+		<Border Grid.Column="1" Grid.RowSpan="2" Background="#8c9eff"/>
+
+		<Grid Grid.Row="0" Grid.Column="0" Margin="20">
+			<Grid.ColumnDefinitions>
+				<ColumnDefinition Width="2*"/>
+				<ColumnDefinition Width="2*"/>
+			</Grid.ColumnDefinitions>
+
+			<Grid.RowDefinitions>
+				<RowDefinition Height="2*"/>
+				<RowDefinition Height="2*"/>
+			</Grid.RowDefinitions>
+
+			<StackPanel Grid.Row="0" Grid.Column="0">
+				<CheckBox Name="checkboxWiFi" Content="Allow WiFi connections" HorizontalAlignment="Left" VerticalAlignment="Center" Click="Click_Con_WiFi"/>
+				<CheckBox Name="checkboxLAN" Content="Allow LAN connections" HorizontalAlignment="Left" VerticalAlignment="Center" Click="Click_Con_LAN"/>
+				<CheckBox Name="checkboxUSB" Content="Allow USB connections" HorizontalAlignment="Left" VerticalAlignment="Center" Click="Click_Con_USB"/>
+				<CheckBox Name="checkboxBluetooth" Content="Allow Bluetooth connections" HorizontalAlignment="Left" VerticalAlignment="Center" Click="Click_Con_Bluetooth"/>
+			</StackPanel>
+
+			<StackPanel Grid.Row="1" Grid.Column="0">
+				<TextBox Name="wifiPort" Text="24545" HorizontalAlignment="Left" VerticalAlignment="Center"/>
+				<TextBox Name="lanPort" Text="24545" HorizontalAlignment="Left" VerticalAlignment="Center"/>
+			</StackPanel>
+
+			<TextBlock Name="statusView" Grid.RowSpan="2" Grid.Column="1" Margin="10" Text="" TextWrapping="Wrap"/>
+		</Grid>
+
+		<Grid Grid.Row="1" Grid.Column="0" AllowDrop="True" DragOver="DragOver_TileCreate" Drop="Drop_TileCreate" Background="#1a237e">
+			<TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="25">Drop application to create tile</TextBlock>
+		</Grid>
+
+		<TextBlock Name="outputView" Grid.RowSpan="2" Grid.Column="1" Margin="20" Text="" TextWrapping="Wrap"/>
+	</Grid>
+</Page>
