@@ -1,86 +1,59 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace RemAL {
-	class LanManager {
-		private const int DELAY_TIME = 100;
-		private static bool isRunning;
-		private static UdpClient listener;
+	class LanManager : WiFiManager {
+		private UdpClient udpListener;
 
-		public static void Start(int port) {
-			isRunning = true;
+		public LanManager(int port) : base(port) {
 
-			if(listener == null) {
-				new Task(async () => {
-					listener = new UdpClient(port);
-					listener.EnableBroadcast = true;
+		}
 
-					Debug.WriteLine("Listening on " + (listener.Client.LocalEndPoint as IPEndPoint).Address);
+		public override void Enable() {
+			base.Enable();
 
-					while(isRunning) {
-						var data = await listener.ReceiveAsync();
+			//Broadcast lan port
+			new Task(async () => {
+				if(udpListener != null)
+					udpListener.Dispose();
 
-						if(isRunning) {
-							var request = Encoding.ASCII.GetString(data.Buffer);
-							Socket client = listener.Client;
+				RemalUtils.Log("Broadcasting to " + GetName() + " on port " + port);
 
-							client.Connect(data.RemoteEndPoint);
+				while(isRunning) {
+					using(udpListener = new UdpClient(port)) {
+						try {
+							udpListener.EnableBroadcast = true;
+							var data = await udpListener.ReceiveAsync();
 
-							Debug.WriteLine("Connected client");
+							if(isRunning) {
+								var request = Encoding.ASCII.GetString(data.Buffer);
+								Socket client = udpListener.Client;
 
-							if(request == "REMAL_DETECT") {
-								Debug.WriteLine("Sending detection");
+								if(request == "REMAL_DETECT") {
+									IPAddress address = (data.RemoteEndPoint as IPEndPoint).Address;
+									RemalUtils.Log("Discovered by " + address.ToString() + ", notifying...");
 
-								client.Send(Encoding.ASCII.GetBytes("REMAL_DETECT"));
-							} else {
-								bool didHandshake = false, keepAlive = true;
-
-								Debug.WriteLine("Waiting for handshake");
-
-								new Task(() => {
-									while(isRunning && keepAlive) {
-										byte[] b = new byte[64];
-
-										int length = client.Receive(b);
-										onMessage(Encoding.ASCII.GetString(b, 0, length), ref didHandshake);
-									}
-
+									client.Connect(data.RemoteEndPoint);
+									client.Send(Encoding.ASCII.GetBytes("REMAL_DETECT"));
 									client.Shutdown(SocketShutdown.Both);
-									client.Dispose();
-								}).Start();
-
-								new Task(async () => {
-									await Task.Delay(5000);
-
-									if(!didHandshake) {
-										keepAlive = false;
-										Debug.WriteLine("Terminating for being alive too long");
-									}
-								}).Start();
-
-								Debug.WriteLine(request);
+								}
 							}
-						}
+						} catch(ObjectDisposedException) {}
 					}
-
-					listener.Dispose();
-					listener = null;
-				}).Start();
-			}
+				}
+			}).Start();
 		}
 
-		public static void Stop() {
-			isRunning = false;
+		public override void Disable() {
+			base.Disable();
+			RemalUtils.Log("Stopped " + GetName() + " broadcast");
 		}
 
-		private static void onMessage(string msg, ref bool didHandshake) {
-			Debug.WriteLine("[RemAL] " + msg);
+		public override string GetName() {
+			return "LAN";
 		}
 	}
 }

@@ -53,6 +53,8 @@
 			<TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="25">Drop application to create tile</TextBlock>
 		</Grid>
 
-		<TextBlock Name="outputView" Grid.RowSpan="2" Grid.Column="1" Margin="20" Text="" TextWrapping="Wrap"/>
+		<ScrollViewer VerticalScrollBarVisibility="Auto" Grid.RowSpan="2" Grid.Column="1" Margin="20">
+			<TextBlock Name="outputView" Text="" TextWrapping="Wrap"/>
+		</ScrollViewer>
 	</Grid>
 </Page>

@@ -32,13 +32,23 @@ namespace RemAL {
     /// An empty page that can be used on its own or navigated to within a Frame.
     /// </summary>
     public sealed partial class MainPage : Page {
-		private static TextBlock outputBlock;
+		private ConnectionManager usbman, lanman, blueman, wifiman, sshman;
 
 		public MainPage() {
 			InitializeComponent();
 
-			outputBlock = outputView;
-        }
+			RemalUtils.LogEvent += async msg => await Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, () => {
+				string block = "";
+
+				foreach(LogData d in RemalUtils.GetLog())
+					block += d.text + (d.occurences > 0 ?  (" (x" + (1 + d.occurences) + ")") : "") + "\n";
+
+				outputView.Text = "->" + block;
+			});
+
+			wifiman = new WiFiManager(int.Parse(wifiPort.Text));
+			lanman = new LanManager(int.Parse(lanPort.Text));
+		}
 
 		private void DragOver_TileCreate(object sender, DragEventArgs e) {
 			e.AcceptedOperation = Windows.ApplicationModel.DataTransfer.DataPackageOperation.Link;
@@ -50,69 +60,33 @@ namespace RemAL {
 				var items = await e.DataView.GetStorageItemsAsync();
 
 				if(items.Count > 0)
-					createTile(items[0].Path);
+					RemalUtils.createTile(items[0].Path);
 			}
-		}
-
-		private void createTile(String path) {
-			outputText("Create tile for: " + path);
-		}
-
-		public static void outputText(Object text) {
-			if(outputBlock != null)
-				outputBlock.Text = outputBlock.Text + "\n" + text.ToString();
 		}
 
 		private void Click_Con_USB(object sender, RoutedEventArgs e) {
-			if(checkboxWiFi.IsChecked.Value) {
-				
-			} else {
-				
-			}
+			//if(checkboxUSB.IsChecked.Value) usbman.Enable();
+			//else usbman.Disable();
 		}
 
-		private async void Click_Con_WiFi(object sender, RoutedEventArgs e) {
-			if(checkboxUSB.IsChecked.Value) {
-				
-			} else {
-				var listener = new TcpListener(IPAddress.Any, 24545);
-
-				outputText("Started listener on " + (listener.LocalEndpoint as IPEndPoint).Address.ToString());
-
-				listener.Start();
-
-				outputText("Accepting clients");
-
-				TcpClient client = await listener.AcceptTcpClientAsync();
-
-				outputText("Got connection from: " + (client.Client.RemoteEndPoint as IPEndPoint).Address);
-
-				byte[] buffer = new byte[64];
-				var data = await client.GetStream().ReadAsync(buffer, 0, buffer.Length);
-
-				outputText(Encoding.ASCII.GetString(buffer));
-
-			}
+		private void Click_Con_WiFi(object sender, RoutedEventArgs e) {
+			if(checkboxWiFi.IsChecked.Value) wifiman.Enable();
+			else wifiman.Disable();
 		}
 
-		private async void Click_Con_LAN(object sender, RoutedEventArgs e) {
-			if(checkboxLAN.IsChecked.Value) {
-				LanManager.Start(24545);
-			} else {
-				LanManager.Stop();
-			}
+		private void Click_Con_LAN(object sender, RoutedEventArgs e) {
+			if(checkboxLAN.IsChecked.Value) lanman.Enable();
+			else lanman.Disable();
 		}
 
 		private void Click_Con_Bluetooth(object sender, RoutedEventArgs e) {
-			if(checkboxBluetooth.IsChecked.Value) {
-
-			} else {
-
-			}
+			//if(checkboxBluetooth.IsChecked.Value) blueman.Enable();
+			//else blueman.Disable();
 		}
 
-		private string GetLocalAddress() {
-			return NetworkInformation.GetHostNames().FirstOrDefault(hostname => hostname.IPInformation != null && hostname.Type == HostNameType.Ipv4).ToString();
+		private void Click_Con_SSHh(object sender, RoutedEventArgs e) {
+			//if(checkboxSSH.IsChecked.Value) sshman.Enable();
+			//else sshman.Disable();
 		}
 	}
 }
