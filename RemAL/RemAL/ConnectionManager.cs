@@ -1,13 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace RemAL {
-	interface ConnectionManager {
+﻿namespace RemAL {
+	public interface ConnectionManager {
+		bool IsActive();
 		void Enable();
 		void Disable();
 		string GetName();
+		void CreateTile(string path);
 	}
 }

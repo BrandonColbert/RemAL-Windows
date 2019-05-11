@@ -1,12 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
-using Windows.Networking;
-using Windows.Networking.Connectivity;
+using System.IO;
 
 namespace RemAL {
-	struct LogData {
+	public struct LogData {
 		public string text;
 		public int occurences;
 
@@ -16,7 +14,7 @@ namespace RemAL {
 		}
 	}
 
-	class RemalUtils {
+	public class RemalUtils {
 		private const int MAX_LOG = 1000;
 		private static List<LogData> logList = new List<LogData>();
 		public delegate void OnLogEvent(String msg);
@@ -45,12 +43,64 @@ namespace RemAL {
 			return logList.ToArray();
 		}
 
-		public static string GetLocalAddress() {
-			return NetworkInformation.GetHostNames().FirstOrDefault(hostname => hostname.IPInformation != null && hostname.Type == HostNameType.Ipv4).ToString();
+		public static void CreateTile(string path) {
+			Log("Creating tile for: " + path);
+			
+			CreateTile(path, MainWindow.usbman);
+			CreateTile(path, MainWindow.lanman);
+			CreateTile(path, MainWindow.blueman);
+			CreateTile(path, MainWindow.wifiman);
+			CreateTile(path, MainWindow.sshman);
 		}
 
-		public static void createTile(String path) {
-			RemalUtils.Log("Create tile for: " + path);
+		private static void CreateTile(string path, ConnectionManager man) {
+			if(man != null && man.IsActive())
+				man.CreateTile(path);
+		}
+
+		public static void OnMessage(string msg) {
+			string[] request = msg.Split(new char[] { ':' }, 2);
+
+			if(request.Length == 2) {
+				string type = request[0], details = request[1];
+
+				switch(type) {
+					case "app":
+						break;
+					case "path": {
+						details = details.Replace('/', '\\');
+
+						Log("Received: " + type + " - " + details);
+
+						if(File.Exists(details))
+							executeShellCommand("\"" + details + "\"");
+						else if(Directory.Exists(details))
+								executeShellCommand("explorer.exe \"" + details + "\"");
+							else
+							Log("Unable to find a file/folder at '" + details + "'");
+
+						break;
+					}
+					case "macro":
+						break;
+					case "shell": {
+						executeShellCommand(details);
+
+						break;
+					}
+				}
+			} else {
+				Log("Received Strange: " + msg);
+			}
+		}
+
+		public static void executeShellCommand(string command) {
+			ProcessStartInfo p = new ProcessStartInfo();
+			p.CreateNoWindow = true;
+			p.FileName = "cmd.exe";
+			p.Arguments = "/c " + command;
+			p.WindowStyle = ProcessWindowStyle.Hidden;
+			Process.Start(p);
 		}
 	}
 }

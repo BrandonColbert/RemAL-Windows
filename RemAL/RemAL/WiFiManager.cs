@@ -1,24 +1,24 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace RemAL {
-	class WiFiManager : ConnectionManager {
+	public class WiFiManager : ConnectionManager {
 		private const String HANDSHAKE = "REMAL_HANDSHAKE",
-			ACTION_VALID = "REMAL_ACTION_VALID",
-			ACTION_INVALID = "REMAL_ACTION_INVALID",
-			REMAL_DC = "REMAL_DISCONNECT";
+			REMAL_DC = "REMAL_DISCONNECT",
+			TILE_CREATE = "TILE_CREATE";
 
 		protected volatile bool isRunning;
 		protected int port;
 		protected TcpListener listener;
-		protected List<string> connectedAddresses = new List<string>();
+		protected Dictionary<string, TcpClient> connectedAddresses = new Dictionary<string, TcpClient>();
 
-		public WiFiManager(int port) {
-			setPort(port);
+		public WiFiManager() {
+
 		}
 
 		public void setPort(int port) {
@@ -43,57 +43,34 @@ namespace RemAL {
 
 						if(isRunning) {
 							string address = (client.Client.RemoteEndPoint as IPEndPoint).Address.ToString();
-							if(!connectedAddresses.Contains(address)) {
+							if(!connectedAddresses.ContainsKey(address)) {
 								RemalUtils.Log("Connecting to " + address);
 
 								var stream = client.GetStream();
 
 								if(ReadMessage(stream).Equals(HANDSHAKE)) {
 									WriteMessage(stream, HANDSHAKE);
+									connectedAddresses.Add(address, client);
 									RemalUtils.Log("Handshake with " + address + " succeeded");
 
-									new Task(() => {
-										while(isRunning) {
-											RemalUtils.Log("Waiting for msg");
-											onMessage(ReadMessage(stream));
-										}
+									client.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, true);
 
+									new Task(() => {
+										String msg;
+
+										while(isRunning && (msg = ReadMessage(stream)).Length > 0)
+											RemalUtils.OnMessage(msg);
+
+										connectedAddresses.Remove(address);
+										RemalUtils.Log(address + " disconnected");
 									}).Start();
 								}
 							} else {
 								RemalUtils.Log("Received another connection request from " + address + "?");
 							}
 						}
-					} catch(ObjectDisposedException) {}
+					} catch(ObjectDisposedException) { }
 				}
-
-				/*
-				bool didHandshake = false, keepAlive = true;
-
-				RemalUtils.Log("Waiting for handshake");
-
-				new Task(() => {
-					while(isRunning && keepAlive) {
-						byte[] b = new byte[64];
-
-						int length = client.Receive(b);
-						onMessage(Encoding.ASCII.GetString(b, 0, length), ref didHandshake);
-					}
-
-					client.Shutdown(SocketShutdown.Both);
-				}).Start();
-
-				new Task(async () => {
-					await Task.Delay(5000);
-
-					if(!didHandshake) {
-						keepAlive = false;
-						RemalUtils.Log("Terminating for being alive too long");
-					}
-				}).Start();
-
-				RemalUtils.Log(request);
-				*/
 			}).Start();
 		}
 
@@ -128,8 +105,13 @@ namespace RemAL {
 			return "WiFi";
 		}
 
-		private void onMessage(string msg) {
-			RemalUtils.Log("[RemAL] " + msg);
+		public bool IsActive() {
+			return isRunning;
+		}
+
+		public void CreateTile(string path) {
+			foreach(KeyValuePair<String, TcpClient> p in connectedAddresses)
+				WriteMessage(p.Value.GetStream(), TILE_CREATE + ":" + path);
 		}
 	}
 }

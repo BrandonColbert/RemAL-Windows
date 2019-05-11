@@ -5,12 +5,8 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace RemAL {
-	class LanManager : WiFiManager {
+	public class LanManager : WiFiManager {
 		private UdpClient udpListener;
-
-		public LanManager(int port) : base(port) {
-
-		}
 
 		public override void Enable() {
 			base.Enable();
@@ -41,7 +37,7 @@ namespace RemAL {
 									client.Shutdown(SocketShutdown.Both);
 								}
 							}
-						} catch(ObjectDisposedException) {}
+						} catch(ObjectDisposedException) { }
 					}
 				}
 			}).Start();
